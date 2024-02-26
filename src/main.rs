@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     extract::{Path, Query},
     response::{IntoResponse, Response},
-    routing::{get, post}, 
+    routing::{get, post, delete}, 
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -61,6 +61,31 @@ async fn list_users() -> Json<Vec<User>> {
     Json(users)
 }
 
+// Handler for deleting user that might return an error
+async fn delete_user(Path(user_id): Path<u64>) -> Result<Json<User>, impl IntoResponse> {
+    match perform_delete_user(user_id).await {
+        Ok(_) => Ok(Json(User {
+            id: user_id,
+            name: "Deleted user".into(),
+            email: "Deleted email".into(),
+        })),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to delete user: {}", e),
+        )),
+    }
+}
+
+// Function that would delete user
+async fn perform_delete_user(user_id: u64) -> Result<(), String> {
+    // Simulate error for demo
+    if user_id == 1 {
+        Err("User cannot be deleted".to_string())
+    } else {
+        Ok(())
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
@@ -68,6 +93,7 @@ async fn main() {
         .route("/item/:id", get(show_item))
         .route("/add-item", post(add_item))
         .route("/create-user", post(create_user))
+        .route("/delete-user/:user_id", delete(delete_user))
         .route("/users", get(list_users));
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
