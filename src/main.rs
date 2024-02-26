@@ -1,11 +1,23 @@
 use axum::{
     body::Body,
     http::StatusCode,
+    extract::{Path, Query},
     response::{IntoResponse, Response},
     routing::{get, post}, 
     Json, Router,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+// Struct for query parameters
+#[derive(Deserialize)]
+struct Page {
+    number: u32,
+}
+
+// Handler to demonstrate path and query extractor
+async fn show_item(Path(id): Path<u32>, Query(page): Query<Page>) -> String {
+    format!("Item {} on page {}", id, page.number)
+}
 
 #[derive(Serialize)]
 struct User {
@@ -43,6 +55,7 @@ async fn list_users() -> Json<Vec<User>> {
 async fn main() {
     let app = Router::new()
         .route("/", get(|| async { "Hello" }))
+        .route("/item/:id", get(show_item))
         .route("/create-user", post(create_user))
         .route("/users", get(list_users));
 
