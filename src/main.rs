@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::MySqlPool;
 
 // Struct for query parameters
 #[derive(Deserialize)]
@@ -88,6 +89,12 @@ async fn perform_delete_user(user_id: u64) -> Result<(), String> {
 
 #[tokio::main]
 async fn main() {
+    // TODO: Use environment variables to populate parameters
+    let database_url = "mysql://<<USERNAME>>:<<PASSWORD>>@<<HOSTNAME>>/<<DATABASE NAME>>";
+    let pool = MySqlPool::connect(&database_url)
+        .await
+        .expect("Could not connect to the database");
+
     let app = Router::new()
         .route("/", get(|| async { "Hello" }))
         .route("/item/:id", get(show_item))
