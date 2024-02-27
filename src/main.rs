@@ -9,26 +9,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 
-// Struct for query parameters
-#[derive(Deserialize)]
-struct Page {
-    number: u32,
-}
-
-// Struct for the JSON body
-#[derive(Deserialize)]
-struct Item {
-    title: String,
-}
-
-// Handler to demonstrate path and query extractor
-async fn show_item(Path(id): Path<u32>, Query(page): Query<Page>) -> String {
-    format!("Item {} on page {}", id, page.number)
-}
-
-async fn add_item(Json(item): Json<Item>) -> String {
-    format!("Added item: {}", item.title)
-}
 
 #[derive(Serialize)]
 struct User {
@@ -97,8 +77,6 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello" }))
-        .route("/item/:id", get(show_item))
-        .route("/add-item", post(add_item))
         .route("/create-user", post(create_user))
         .route("/delete-user/:user_id", delete(delete_user))
         .route("/users", get(list_users));
