@@ -1,9 +1,9 @@
 use axum::{
     body::Body,
-    http::StatusCode,
     extract::{Path, Query},
+    http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post, delete}, 
+    routing::{get, delete, post}, 
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
