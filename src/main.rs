@@ -1,13 +1,14 @@
 use axum::{
     body::Body,
-    extract::{Path, Query},
+    extract::{Extension, Path, Query},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, delete, post}, 
-    Json, Router,
+    Json, Router, Server,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::MySqlPool;
+use serde_json::json;
+use sqlx::{MySqlPool, Row};
 
 
 #[derive(Serialize)]
@@ -26,20 +27,33 @@ async fn create_user() -> impl IntoResponse {
     }
 
 // Handler for /users
-async fn list_users() -> Json<Vec<User>> {
-    let users = vec![
-        User {
-            id: 1,
-            name: "Philip".to_string(),
-            email: "philip@email.com".to_string(),
-        },
-        User {
-            id: 2,
-            name: "Per".to_string(),
-            email: "per@email.com".to_string(),
-        },
-    ];
-    Json(users)
+async fn get_users(Extension(pool): Extension<MySqlPool>) -> impl IntoResponse {
+    let rows = match sqlx::query("SELECT id, name, email FROM users")
+        .fetch_all(&pool)
+        .await
+    {
+        Ok(rows) => rows,
+        Err(_) => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error",
+            )
+                .into_response()
+        }
+    };
+
+    let users: Vec<serde_json::Value> = rows
+        .into_iter()
+        .map(|row| {
+            json!({
+                "id": row.try_get::<i32, _>("id").unwrap_or_default(),
+                "name": row.try_get::<String, _>("name").unwrap_or_default(),
+                "email": row.try_get::<String, _>("email").unwrap_or_default(),
+            })
+        })
+        .collect();
+
+    (axum::http::StatusCode::OK, Json(users)).into_response()
 }
 
 // Handler for deleting user that might return an error
@@ -79,9 +93,10 @@ async fn main() {
         .route("/", get(|| async { "Hello" }))
         .route("/create-user", post(create_user))
         .route("/delete-user/:user_id", delete(delete_user))
-        .route("/users", get(list_users));
+        .route("/users", get(get_users))
+        .layer(Extension(pool));
 
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
